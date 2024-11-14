@@ -17,15 +17,16 @@ export default function CarList({
 }) 
 {
   const isDarkMode = useColorScheme() === 'dark';
-  const formatIDR = useCallback((price) => formatCurrency.format(price), []) 
+  const formatIDR = useCallback((price) => formatCurrency.format(price), []);
 
   return (
-    <Button style={{ 
-        backgroundColor: isDarkMode ? "#121212":"#fff",
+    <Button 
+      style={{ 
+        backgroundColor: isDarkMode ? "#121212" : "#fff",
         ...styles.card,
         ...style
-        }}
-        onPress={onPress}
+      }}
+      onPress={onPress} // Menjalankan fungsi navigasi yang dikirim dari List
     >
       <Row alignItems={"center"} gap={20}>
         <Col>
@@ -68,7 +69,7 @@ const styles = StyleSheet.create({
   img: {
     width: 80,
     height: 80,
-    objectFit: "contain",
+    resizeMode: "contain",
   },
   carName: {
     fontSize: 14,

@@ -1,4 +1,4 @@
-import { Text, Pressable, StyleSheet } from 'react-native'
+import { Text, TouchableOpacity, StyleSheet } from 'react-native'
 import React from 'react'
 
 export default function Button({
@@ -9,7 +9,7 @@ export default function Button({
     style
 }) {
   return (
-    <Pressable 
+    <TouchableOpacity
         onPress={onPress}
         style={{
             backgroundColor: color,
@@ -18,14 +18,15 @@ export default function Button({
         }}>
             { children ? children : 
             <Text style={styles.buttonTitle}>{title}</Text> }
-    </Pressable>
+    </TouchableOpacity>
   )
 }
 
 const styles = StyleSheet.create({
     button: {
         padding: 10,
-        alignItems:'center'
+        alignItems:'center',
+        borderRadius: 3,
     },
     buttonTitle: {
         textAlign: 'center',

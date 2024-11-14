@@ -5,13 +5,11 @@
  * @format
  */
 
-import {useState, useEffect} from 'react';
+import {useCallback, useState, useEffect} from 'react';
 import {
   FlatList,
   Image,
   SafeAreaView,
-  ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   useColorScheme,
@@ -23,55 +21,60 @@ import axios from 'axios';
 import Button from '../components/Button';
 import Icon from 'react-native-vector-icons/Feather';
 import CarList from '../components/CarList';
+import FocusAwareStatusBar from '../components/FocusAwareStatusBar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 const COLORS = {
   primary: '#A43333',
   secondary: '#5CB85F',
   darker: '#121212',
-  lighter: '#ffffff'
-}
+  lighter: '#ffffff',
+};
 
-const CARS = [{
-  name: 'Innova Zenix',
-  image: 'https://medias.auto2000.co.id/sys-master-hybrismedia/h1b/h8a/8846828240926/Thumbnail_Black_Zenix.png',
-  price: 230000
-},
-{
-  name: 'Yaris',
-  image: 'https://medias.auto2000.co.id/sys-master-hybrismedia/h05/h86/8846786625566/4-black-+-super-white-ii_optimized.png',
-  price: 150000
-},
-{
-  name: 'Yaris',
-  image: 'https://medias.auto2000.co.id/sys-master-hybrismedia/h05/h86/8846786625566/4-black-+-super-white-ii_optimized.png',
-  price: 150000
-}]
-
-const ButtonIcon = ({ icon, title }) => (
+const ButtonIcon = ({icon, title}) => (
   <Button>
     <View style={styles.iconWrapper}>
       <Icon name={icon} size={25} color="#fff" />
     </View>
     <Text style={styles.iconText}>{title}</Text>
   </Button>
-)
+);
 
 function Home() {
-  const [cars, setCars] = useState([])
+  const [cars, setCars] = useState([]);
+  const [user, setUser] = useState(null);
   const isDarkMode = useColorScheme() === 'dark';
-  
-  useEffect(() => {
-    const fetchCars = async () => {
-      try{
-        const res = await axios('http://192.168.100.2:3000/api/v1/cars')
-        console.log(res.data)
-        setCars(res.data)
-      } catch (e) {
-        console.log(e)
-      }
+  const navigation = useNavigation();
+
+  const getUser = async () => {
+    // console.log("async storage",JSON.parse(await AsyncStorage.getItem('users')))
+    setUser(JSON.parse(await AsyncStorage.getItem('users')));
+  };
+
+  const fetchCars = async () => {
+    try {
+      const res = await axios(
+        'https://guilty-estele-flatearth-63063b98.koyeb.app/api/v1/cars',
+      );
+      setCars(res.data);
+    } catch (e) {
+      console.log(e);
     }
-    fetchCars()
-  }, [])
+  };
+
+  useEffect(() => {
+    fetchCars();
+  }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      getUser();
+      if (!user) {
+        setCars('');
+      }
+    }, []),
+  );
 
   const backgroundStyle = {
     // overflow: 'visible',
@@ -80,7 +83,7 @@ function Home() {
 
   return (
     <SafeAreaView style={backgroundStyle}>
-      <StatusBar
+      <FocusAwareStatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={COLORS.primary}
       />
@@ -92,27 +95,41 @@ function Home() {
             <View style={styles.header}>
               <View style={styles.headerContainer}>
                 <View>
-                  <Text style={styles.headerText}>Hi, Nama</Text>
-                  <Text style={styles.headerTextLocation}>Your Location</Text>
+                  <Text style={styles.headerText}>
+                    Hi,
+                    {user ? user.fullname : 'Aloha'}
+                  </Text>
+                  <Text style={styles.headerTextLocation}>
+                    From Tegal Company
+                  </Text>
                 </View>
-                <View >
-                  <Image style={styles.imageRounded} source={{ uri: "https://i.pravatar.cc/100" }} width={50} height={50} />
+                <View>
+                  <Image
+                    style={styles.imageRounded}
+                    source={{uri: 'https://i.pravatar.cc/100'}}
+                    width={50}
+                    height={50}
+                  />
                 </View>
               </View>
               {/* banner */}
-              <View style={{
-                ...styles.headerContainer,
-                ...styles.bannerContainer
-              }}>
+              <View
+                style={{
+                  ...styles.headerContainer,
+                  ...styles.bannerContainer,
+                }}>
                 <View style={styles.bannerDesc}>
-                  <Text style={styles.bannerText}>Sewa Mobil Berkualitas di kawasanmu</Text>
-                  <Button
-                    color={COLORS.secondary}
-                    title='Sewa Mobil'
-                  />
+                  <Text style={styles.bannerText}>
+                    Sewa Mobil Berkualitas di kawasanmu
+                  </Text>
+                  <Button color={COLORS.secondary} title="Sewa Mobil" />
                 </View>
                 <View style={styles.bannerImage}>
-                  <Image source={require('../assets/images/img_car.png')} width={50} height={50} />
+                  <Image
+                    source={require('../assets/images/img_car.png')}
+                    width={50}
+                    height={50}
+                  />
                 </View>
               </View>
             </View>
@@ -124,16 +141,17 @@ function Home() {
             </View>
           </>
         }
-        renderItem={({ item, index }) =>
+        renderItem={({item, index}) => (
           <CarList
-            key={item.id}
-            image={{ uri: item.img }}
+            key={item.toString()}
+            image={{uri: item.img}}
             carName={item.name}
             passengers={5}
             baggage={4}
             price={item.price}
+            onPress={() => navigation.navigate('CarDetail', {carId: item.id})}
           />
-        }
+        )}
         keyExtractor={item => item.id}
       />
     </SafeAreaView>
@@ -150,7 +168,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between', // posisi horizontal
     alignItems: 'center', // posisi
-    padding: 10
+    padding: 10,
   },
   imageRounded: {
     borderRadius: 40,
@@ -158,12 +176,12 @@ const styles = StyleSheet.create({
   headerText: {
     color: COLORS.lighter,
     fontWeight: 700,
-    fontSize: 12
+    fontSize: 12,
   },
   headerTextLocation: {
     color: COLORS.lighter,
     fontWeight: 700,
-    fontSize: 14
+    fontSize: 14,
   },
   bannerContainer: {
     borderRadius: 4,
@@ -171,7 +189,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#AF392F',
     marginHorizontal: 10,
     flexWrap: 'wrap',
-    marginBottom: -200
+    marginBottom: -200,
   },
   bannerText: {
     fontSize: 16,
@@ -180,18 +198,18 @@ const styles = StyleSheet.create({
   },
   bannerDesc: {
     paddingHorizontal: 10,
-    width: '40%'
+    width: '40%',
   },
   iconContainer: {
     marginTop: 75,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
   },
   iconWrapper: {
     backgroundColor: COLORS.primary,
     borderRadius: 5,
-    padding: 15
+    padding: 15,
   },
   iconText: {
     color: '#fff',
@@ -199,8 +217,8 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     minWidth: 65,
     marginTop: 5,
-    textAlign: 'center'
-  }
+    textAlign: 'center',
+  },
 });
 
 export default Home;
