@@ -1,31 +1,41 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
+import { apiClient } from "../../../config/axios";
 
 // Fungsi untuk pendaftaran pengguna
 export const postRegister = createAsyncThunk(
-  'user/postRegister', // Mengubah actionType menjadi 'user/postRegister'
+  'user/postRegister',
   async (payload, { rejectWithValue }) => {
-    try {
-      const res = await axios.post(
-        'http://192.168.1.23:3000/api/v1/auth/signup',
-        payload,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      const { data: userData } = res.data; // Rename data to userData for clarity
-      return userData;
-    } catch (e) {
-      if (e.response && e.response.data) {
-        return rejectWithValue(e.response.data.message);
-      } else if (e.message) {
-        return rejectWithValue(e.message);
-      } else {
-        return rejectWithValue('Something went wrong');
+      try {
+          const res = await apiClient.post('/auth/signup', payload);
+          const data = res.data;
+          return data;
+      } catch (e) {
+          console.log(e)
+          if (e.response.data) {
+              return rejectWithValue(e.response.data.message);
+          } else {
+              return rejectWithValue('Something went wrong');
+          }
       }
-    }
+  }
+);
+
+//Fungsi untuk login via Google
+export const googleLogin = createAsyncThunk(
+  'user/googleLogin',
+  async (payload, { rejectWithValue }) => {
+      try {
+          const res = await apiClient.post('/auth/googleSignIn', payload);
+          const data = res.data;
+          return data;
+      } catch (e) {
+          console.log(e)
+          if (e.response.data) {
+              return rejectWithValue(e.response.data.message);
+          } else {
+              return rejectWithValue('Something went wrong');
+          }
+      }
   }
 );
 
@@ -33,51 +43,39 @@ export const postRegister = createAsyncThunk(
 export const postLogin = createAsyncThunk(
   'user/postLogin',
   async (payload, { rejectWithValue }) => {
-    try {
-      const res = await axios.post(
-        'http://192.168.1.23:3000/api/v1/auth/signin',
-        payload,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      const { data: userData } = res.data;
-      return userData;
-    } catch (e) {
-      if (e.response && e.response.data) {
-        return rejectWithValue(e.response.data.message);
-      } else if (e.message) {
-        return rejectWithValue(e.message);
-      } else {
-        return rejectWithValue('Something went wrong');
+      try {
+          const res = await apiClient.post('/auth/signin', payload);
+          const data = res.data;
+          return data;
+      } catch (e) {
+          console.log(e)
+          if (e.response.data) {
+              return rejectWithValue(e.response.data.message);
+          } else {
+              return rejectWithValue('Something went wrong');
+          }
       }
-    }
   }
 );
-
-// Fungsi untuk mendapatkan profil pengguna
+// Fungsi untuk mendapata profil pengguna
 export const getProfile = createAsyncThunk(
   'user/getProfile',
   async (token, { rejectWithValue }) => {
-    try {
-      const res = await axios.get('http://192.168.1.23:3000/api/v1/auth/whoami', {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const { data: profileData } = res.data; // Rename data to profileData for clarity
-      return profileData;
-    } catch (e) {
-      if (e.response && e.response.data) {
-        return rejectWithValue(e.response.data.message);
-      } else if (e.message) {
-        return rejectWithValue(e.message);
-      } else {
-        return rejectWithValue('Something went wrong');
+      try {
+          const res = await apiClient.post('/auth/whoami', {
+              headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+              },
+          });
+          const { data } = res.data;
+          return data;
+      } catch (e) {
+          if (e.response.data) {
+              return rejectWithValue(e.response.data.message);
+          } else {
+              return rejectWithValue('Something went wrong');
+          }
       }
-    }
   }
-);
+)

@@ -5,18 +5,21 @@
  * @format
  */
 
-import { useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import moment from "moment";
 import {
     FlatList,
     SafeAreaView,
     useColorScheme,
 } from 'react-native';
 
-import CarList from '../components/CarList';
-import FocusAwareStatusBar from '../components/FocusAwareStatusBar';
+import FocusAwareStatusBar from '@components/FocusAwareStatusBar';
 import { useDispatch, useSelector } from 'react-redux';
-import { getCars, selectCars } from '../redux/reducers/cars';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { selectUser } from '@reducers/user';
+import { getOrder, selectOrderList } from '@reducers/order/list';
+import { useFocusEffect } from '@react-navigation/native';
+import OrderList from '@components/OrderList';
+
 
 const COLORS = {
     primary: '#A43333',
@@ -28,19 +31,20 @@ const COLORS = {
 function List() {
     const isDarkMode = useColorScheme() === 'dark';
     const dispatch = useDispatch()
-    const cars = useSelector(selectCars);
-    const navigation = useNavigation();
+    const user = useSelector(selectUser);
+    const order = useSelector(selectOrderList);
 
-    const fetchCars = async () => {
+    const fetchOrder = async () => {
+        console.log('fetch')
         const page = 1;
-        if (!cars.data.length || page > cars.data?.page && cars.status === 'idle') {
-            dispatch(getCars(page))
-        }
+        // if (!order.data.length || page > order.data?.page && order.status === 'idle') {
+        dispatch(getOrder({page, token: user.token}))
+        // }
     }
 
     useFocusEffect(
         useCallback(() => {
-            fetchCars();
+            fetchOrder();
         }, [])
     );
 
@@ -57,18 +61,15 @@ function List() {
             />
             {/* end banner */}
             <FlatList
-                data={cars.data.data}
+                data={order.data?.data}
                 renderItem={({ item, index }) =>
-                    <CarList
+                    <OrderList
                         key={item.id}
-                        image={{ uri: item.img }}
-                        carName={item.name}
-                        passengers={5}
-                        baggage={4}
-                        price={item.price}
-                        onPress={() => navigation.navigate('Detail', { id: item.id })}
-                        onEndReached={fetchCars}
-                        onEndReachedThreshold={0.8}
+                        overdue={moment(item.overdue_time)}
+                        carName={item.cars.name}
+                        status={item.status}
+                        date={moment(item.createdDt).format("DD MMMM YYYY")}
+                        price={item.total}
                     />
                 }
                 keyExtractor={item => item.id}

@@ -12,7 +12,7 @@ import {
 import React, {useEffect, useState} from 'react';
 import Button from '../components/Button';
 import {Link, useNavigation} from '@react-navigation/native';
-import ModalPopup from '../components/Modal';
+import ModalPopup from '../components/Modal/Modal';
 import Icon from 'react-native-vector-icons/Feather';
 // redux
 import {useDispatch, useSelector} from 'react-redux';
@@ -46,6 +46,8 @@ export default function SignUp() {
     }
     await dispatch(postRegister(formData));
   };
+
+  
 
   useEffect(() => {
     // Reset state when the component mounts

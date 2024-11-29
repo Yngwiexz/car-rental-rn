@@ -1,5 +1,5 @@
 import {createSlice} from '@reduxjs/toolkit';
-import {postRegister, postLogin, getProfile} from './api';
+import {postRegister, postLogin, getProfile, googleLogin} from './api';
 
 const initialState = {
   data: null, // Variable untuk menyimpan data user
@@ -13,15 +13,9 @@ export const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    logout: state => {
-      state.data = null;
-      state.isLogin = false;
-      state.token = null;
-      state.status = 'idle';
-      state.message = null;
-    },
-    resetState: state => {
-      return initialState;
+    resetState: () => initialState,
+        setStateByName: (state, action) => {
+            state[action.payload.name] = action.payload.value;
     },
   },
   extraReducers: builder => {
@@ -47,14 +41,31 @@ export const userSlice = createSlice({
     });
     builder.addCase(postLogin.fulfilled, (state, action) => {
       state.status = 'success';
-      state.data = action.payload.user; // asumsi payload mengandung { user, token }
-      state.token = action.payload.token;
+      state.data = action.payload.data.user; // asumsi payload mengandung { user, token }
+      state.token = action.payload.data.token;
       state.isLogin = true;
       state.message = 'Login successful!';
     });
     builder.addCase(postLogin.rejected, (state, action) => {
       state.status = 'failed';
       state.message = action.payload || 'Login failed'; // default message
+    });
+
+    //Google Login
+    builder.addCase(googleLogin.pending, (state, action) => {
+      state.status = 'loading';
+    });
+    builder.addCase(googleLogin.fulfilled, (state, action) => {// action = { type: '', payload: data, meta: {}}
+        state.status = 'success';
+        state.data = action.payload.data.user;
+        state.token = action.payload.data.token;
+        state.message = action.payload.message;
+        state.isLogin = true;
+    });
+    builder.addCase(googleLogin.rejected, (state, action) => {
+        state.status = 'failed';
+        console.log(action);
+        state.message = action.payload;
     });
 
     // Get Profile Reducers
@@ -74,6 +85,6 @@ export const userSlice = createSlice({
 });
 
 export const selectUser = state => state.user; // Selector untuk mengambil state user
-export const {logout, resetState} = userSlice.actions; // Action untuk logout dan reset state
-export {postLogin, getProfile, postRegister}; // Action untuk panggil API postLogin dan getProfile
+export const { resetState, setStateByName } = userSlice.actions; // Action untuk logout dan reset state
+export {postLogin, getProfile, postRegister, googleLogin}; // Action untuk panggil API postLogin dan getProfile
 export default userSlice.reducer; // User reducer untuk ditambahkan ke store
