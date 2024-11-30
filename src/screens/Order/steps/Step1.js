@@ -1,127 +1,131 @@
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  Pressable,
-  Modal,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, Modal, ActivityIndicator } from 'react-native';
 import DateTimePicker from 'react-native-ui-datepicker';
-import {useState} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
-import {postOrder, selectOrder, setStateByName} from '../../../redux/reducers/order';
-import {selectCarDetail} from '../../../redux/reducers/cars';
+import { useCallback, useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { selectOrder, setFormData, getOrderDetails } from '../../../redux/reducers/order';
+import { getCarsDetails, selectCarDetail } from '../../../redux/reducers/cars';
 import CarList from '../../../components/CarList';
 import Button from '../../../components/Button';
 import Icon from 'react-native-vector-icons/Feather';
 import SelectDropdown from 'react-native-select-dropdown';
 
 const paymentMethods = [
-  {bankName: 'BCA', account: 12345678, name: 'a. n Super Travel'},
-  {bankName: 'MANDIRI', account: 12345678, name: 'a. n Super Travel'},
-  {bankName: 'BNI', account: 12345678, name: 'a. n Super Travel'},
+  { bankName: 'BCA', account: 12345678, name: 'a. n Super Travel' },
+  { bankName: 'MANDIRI', account: 12345678, name: 'a. n Super Travel' },
+  { bankName: 'BNI', account: 12345678, name: 'a. n Super Travel' },
 ];
 
-export default function Step1() {
-  const [showDateTime, setShowDateTime] = useState(false);
+const options = {
+  weekday: "long",
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+};
+
+const formatDate = (date) => new Date(date).toLocaleString('id-ID', options)
+
+export default function Step1({route}) {
+  const orderId = route?.params?.orderId;
+  const carId = route?.params?.carId;
   const [promoText, setPromoText] = useState(null);
-  const {selectedBank, promo, driverType} = useSelector(selectOrder); // Fetch driverType from Redux state
-  const [date, setDate] = useState(new Date());
-  const {data} = useSelector(selectCarDetail);
-  const order = useSelector(selectOrder)
+  const { formData, status:orderStatus } = useSelector(selectOrder);
+  const { data, status:carStatus } = useSelector(selectCarDetail);
   const dispatch = useDispatch();
 
-  const driverOptions = [
-    {title: 'Tanpa Sopir', value: false},
-    {title: 'Dengan Sopir', value: true},
-  ];
+  const [datePickerModal, setDatePickerModal] = useState({
+    visible: false,
+    currentInput: 'start_time'
+  })
 
-  const handleDriverTypeChange = selectedItem => {
-    // Dispatch the selected driver type to Redux state
-    dispatch(setStateByName({name: 'driverType', value: selectedItem.value}));
-  };
+  const openDateTimePicker = (inputName) => {
+    setDatePickerModal({
+      visible: true,
+      currentInput: inputName
+    })
+  }
 
-  const handleDateChange = selectedDate => {
-    setDate(selectedDate);
-    setShowDateTime(false); // Close modal after date is selected
-  };
+  const handleInputChange = (name, value) => {
+    dispatch(setFormData({name, value}))
+  }
+
+  const minDate = (date) => {
+    const newDate = new Date(date)
+    return newDate.setDate(newDate.getDate() + 1);
+  }
+
+  const dateTimePickerHandler = (params) => {
+    console.log(formData)
+    handleInputChange(datePickerModal.currentInput, params.date)
+  }
+
+  useEffect(() => {
+    if(orderId && carId){
+      getOrderDetails(orderId)
+      getCarsDetails(carId)
+    }
+    handleInputChange('car_id', data.id)
+  }, []);
+
+  if (orderStatus === 'loading' || carStatus === 'loading') { return <ActivityIndicator />; }
 
   return (
-    <View style={{flex: 1}}>
+    <View style={{ flex: 1 }}>
       <View style={styles.container}>
         <CarList
-          image={{uri: data?.img}}
+          image={{ uri: data?.img }}
           carName={data?.name}
           passengers={5}
           baggage={4}
           price={data.price}
         />
         <Text style={styles.textBold}>Pilih Opsi Sewa</Text>
-
         <View style={styles.inputWrapper}>
           <Text style={styles.inputLabel}>Tanggal Ambil</Text>
-          <Pressable onPress={() => setShowDateTime(true)}>
-            <Text>Select Date</Text>
+          <Pressable style={styles.inputDate} onPress={() => openDateTimePicker('start_time')}>
+            <Text>{formData.start_time ? formatDate(formData.start_time) : 'Pilih Tanggal Ambil'}</Text>
           </Pressable>
         </View>
-
         <View style={styles.inputWrapper}>
           <Text style={styles.inputLabel}>Tanggal Kembali</Text>
-          <Pressable onPress={() => setShowDateTime(true)}>
-            <Text>Select Date</Text>
+          <Pressable style={styles.inputDate} onPress={() => openDateTimePicker('end_time')}>
+            <Text>{formData.end_time ? formatDate(formData.end_time) : 'Pilih Tanggal Kembali'}</Text>
           </Pressable>
         </View>
-
-        {/* Modal for Date Picker */}
-        <Modal
-          visible={showDateTime}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setShowDateTime(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Pilih Tanggal</Text>
-              <DateTimePicker
-                mode="single"
-                date={date}
-                onChange={params => handleDateChange(params.date)}
-              />
-              <Pressable
-                onPress={() => setShowDateTime(false)}
-                style={styles.modalCloseButton}>
-                <Text style={styles.modalCloseText}>Tutup</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
-
         <View style={styles.inputWrapper}>
           <Text style={styles.inputLabel}>Tipe Supir</Text>
           <SelectDropdown
-            data={driverOptions}
-            onSelect={handleDriverTypeChange} // Set state with the selected item
-            defaultButtonText={driverType ? 'Dengan Sopir' : 'Tanpa Sopir'} // Display selected driver type
+            data={[
+              ...!data.isDriver && [{
+                title: 'Lepas Kunci',
+                value: false,
+              }],
+              {
+                title: 'Dengan Sopir',
+                value: false,
+              }]}
+            onSelect={(selectedItem, index) => {
+              handleInputChange('is_driver', selectedItem.value)
+            }}
+            defaultValue={formData.is_driver}
             renderButton={(selectedItem, isOpened) => {
               return (
                 <View style={styles.dropdownButtonStyle}>
+                  {selectedItem && (
+                    <Icon name={selectedItem.icon} style={styles.dropdownButtonIconStyle} />
+                  )}
                   <Text style={styles.dropdownButtonTxtStyle}>
-                    {selectedItem ? selectedItem.title : 'Pilih Tipe Supir'}
+                    {(selectedItem && selectedItem.title) || 'Pilih supir'}
                   </Text>
-                  <Icon
-                    name={isOpened ? 'chevron-up' : 'chevron-down'}
-                    style={styles.dropdownButtonArrowStyle}
-                  />
+                  <Icon name={isOpened ? 'chevron-up' : 'chevron-down'} style={styles.dropdownButtonArrowStyle} />
                 </View>
               );
             }}
             renderItem={(item, index, isSelected) => {
               return (
-                <View
-                  style={{
-                    ...styles.dropdownItemStyle,
-                    ...(isSelected && {backgroundColor: '#D2D9DF'}),
-                  }}>
+                <View style={{ ...styles.dropdownItemStyle, ...(isSelected && { backgroundColor: '#D2D9DF' }) }}>
+                  <Icon name={item.icon} style={styles.dropdownItemIconStyle} />
                   <Text style={styles.dropdownItemTxtStyle}>{item.title}</Text>
                 </View>
               );
@@ -130,23 +134,27 @@ export default function Step1() {
             dropdownStyle={styles.dropdownMenuStyle}
           />
         </View>
-
         <Text style={styles.textBold}>Pilih Bank Transfer</Text>
         <Text style={styles.textBold}>
           Kamu bisa membayar dengan transfer melalui ATM, Internet Banking atau
           Mobile Banking
         </Text>
-        <View style={{marginBottom: 10}}>
-          {paymentMethods.map(e => (
+        <View
+          style={{
+            marginBottom: 10,
+          }}
+        >
+          {paymentMethods.map((e) => (
             <Button
               key={e.bankName}
               style={styles.paymentMethod}
-              onPress={() =>
-                dispatch(setStateByName({name: 'selectedBank', value: e}))
-              }>
+              onPress={() => {
+                handleInputChange('payment_method', e.bankName)
+              }}
+            >
               <Text style={styles.paymentBox}>{e.bankName}</Text>
               <Text style={styles.paymentText}>{e.bankName} Transfer</Text>
-              {selectedBank?.bankName === e.bankName && (
+              {formData.payment_method === e.bankName && (
                 <Icon
                   style={styles.check}
                   color={'#3D7B3F'}
@@ -157,54 +165,59 @@ export default function Step1() {
             </Button>
           ))}
         </View>
-
         <View style={styles.promos}>
           <Text style={styles.textBold}>% Pakai Kode Promo</Text>
           <View style={styles.promosForm}>
-            {!promo ? (
+            {!formData.promo ? (
               <>
                 <TextInput
                   style={styles.promoInput}
-                  onChangeText={val => setPromoText(val)}
+                  onChangeText={(val) => setPromoText(val)}
                   placeholder="Tulis promomu disini"
                 />
                 <Button
                   style={styles.promoButton}
-                  onPress={() =>
-                    dispatch(
-                      setStateByName({
-                        name: 'promo',
-                        value: promoText,
-                      }),
-                    )
-                  }
+                  onPress={() => {
+                    handleInputChange('promo', promoText)
+                  }}
                   title={'Terapkan'}
                   color="#3D7B3F"
                 />
               </>
             ) : (
               <View style={styles.promoTextWrapper}>
-                <Text style={styles.promoText}>{promo}</Text>
+                <Text style={styles.promoText}>{formData.promo}</Text>
                 <Pressable
-                  onPress={() =>
-                    dispatch(
-                      setStateByName({
-                        name: 'promo',
-                        value: null,
-                      }),
-                    )
-                  }>
+                  onPress={() => {
+                    handleInputChange('promo', null)
+                  }}
+                >
                   <Icon
                     style={styles.check}
                     color={'#880808'}
                     size={30}
-                    name={'close'}
+                    name={'x'}
                   />
                 </Pressable>
               </View>
             )}
           </View>
         </View>
+        <Modal visible={datePickerModal.visible}>
+          <Pressable onPress={() => setDatePickerModal({ currentInput: null, visible: false })}>
+            <Icon name={'x'} size={20} />
+          </Pressable>
+          <View style={styles.datePickerWrapper}>
+            <DateTimePicker
+              mode="single"
+              timePicker={true}
+              minDate={datePickerModal.currentInput === 'end_time' && minDate(formData.start_time)}
+              date={formData[datePickerModal.currentInput]}
+              onChange={dateTimePickerHandler}
+            />
+            <Button color="#3D7B3F" title={'Simpan'} onPress={() => setDatePickerModal({ currentInput: null, visible: false })} />
+          </View>
+        </Modal>
       </View>
     </View>
   );
@@ -269,40 +282,64 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   inputLabel: {
-    fontWeight: '700',
+    fontWeight: 700,
   },
   input: {
     borderWidth: 1,
     marginTop: 10,
     paddingHorizontal: 10,
   },
-  // Modal styles
-  modalOverlay: {
+  inputDate: {
+    borderWidth: 1,
+    marginTop: 10,
+    padding: 10,
+  },
+  datePickerWrapper: {
     flex: 1,
+    height: '100%',
+  },
+  dropdownButtonStyle: {
+    backgroundColor: '#E9ECEF',
+    borderRadius: 12,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Transparent black background
+    padding: 10,
+    marginTop: 10,
   },
-  modalContent: {
-    width: '80%',
+  dropdownButtonTxtStyle: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#151E26',
+  },
+  dropdownButtonArrowStyle: {
+    fontSize: 14,
+  },
+  dropdownButtonIconStyle: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  dropdownMenuStyle: {
     backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontFamily: 'PoppinsBold',
-    fontSize: 18,
-    marginBottom: 20,
-  },
-  modalCloseButton: {
-    marginTop: 20,
-    backgroundColor: '#3D7B3F',
-    paddingVertical: 10,
     borderRadius: 8,
   },
-  modalCloseText: {
-    color: '#fff',
-    fontSize: 16,
+  dropdownItemStyle: {
+    width: '100%',
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  dropdownItemTxtStyle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#151E26',
+  },
+  dropdownItemIconStyle: {
+    fontSize: 28,
+    marginRight: 8,
   },
 });

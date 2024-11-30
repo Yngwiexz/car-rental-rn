@@ -12,6 +12,7 @@ import { selectCarDetail } from '../../redux/reducers/cars';
 import { selectOrder, setStateByName, postOrder } from '../../redux/reducers/order';
 import { selectUser } from '../../redux/reducers/user';
 import { useDispatch, useSelector } from 'react-redux';
+import { resetState } from '../../redux/reducers/order';
 import Button from '../../components/Button';
 import moment from 'moment';
 
@@ -19,16 +20,12 @@ export default function Order() {
   const carDetails = useSelector(selectCarDetail);
   const { data, activeStep, selectedBank, status, errorMessage } = useSelector(selectOrder);
   const user = useSelector(selectUser);
+  const form = useSelector((state) => state.order.formData)
   const dispatch = useDispatch();
 
   const handleOrder = () => {
-    const formData = {
-      carId: carDetails.data.id,
-      startRentAt: moment().format('YYYY-MM-DD'),
-      finishRentAt: moment().add(4, 'days').format('YYYY-MM-DD'),
-    };
-
-    dispatch(postOrder({token:user.data.access_token, formData}));
+console.log('data',form)
+    dispatch(postOrder({token:user.token, form}));
   };
 
   useEffect(() => {
@@ -60,7 +57,7 @@ export default function Order() {
             <Button
               disabled={!selectedBank && true}
               color="#3D7B3F"
-              onPress={handleOrder}
+              onPress={() => dispatch(resetState())}
               title="Lanjutkan Pembayaran"
             />
           </>

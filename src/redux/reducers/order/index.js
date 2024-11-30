@@ -11,7 +11,7 @@ const initialState = {
   countdown: null,
   activeStep: 0,
   formData: {
-    'car_id': null,
+    car_id: null,
     'start_time': new Date().toString(),
     'end_time': new Date().toString(),
     'payment_method': null,

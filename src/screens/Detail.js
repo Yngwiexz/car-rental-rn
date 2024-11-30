@@ -90,9 +90,7 @@ export default function Detail({route}) {
             resizeMode="contain"
           />
         </View>
-        <Markdown style={styles.markdown}>
-          {carDetail?.data?.description?.replace(/\\n/g, '\n') || 'No description available.'}
-        </Markdown>
+        <Markdown style={styles.details}>{carDetail.data?.description?.replace(/\\n/g,"\n")}</Markdown>
       </ScrollView>
       <View style={styles.footer}>
         <Text style={styles.price}>
